@@ -1,0 +1,13 @@
+# 构建产物
+build/
+
+# 本机构建环境（build.sh 自动生成）
+.sdk/
+.toolchain/
+.build/
+
+# 工作区数据
+.workbuddy/
+
+# macOS
+.DS_Store
