@@ -5,8 +5,10 @@ struct LiveView: View {
     @EnvironmentObject var engine: StatsEngine
     @EnvironmentObject private var preferences: AppPreferences
     @EnvironmentObject private var router: WindowRouter
+    @EnvironmentObject private var updateService: UpdateService
     @Environment(\.openWindow) private var openWindow
     @State private var hoveredAction: String?
+    @State private var hoveredUpdate = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -14,6 +16,28 @@ struct LiveView: View {
             // 避免视图重建吞掉鼠标点击（否则「退出」按钮经常点不中）。
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 statsRows(engine.snapshot())
+            }
+            // 自动检查更新发现新版本时在此提示,点击直达下载
+            if case let .available(update) = updateService.state {
+                Button {
+                    updateService.openUpdate(update)
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .foregroundStyle(Color.accentColor)
+                        Text(preferences.text.string(.updateAvailable) + ": v\(update.version)")
+                            .font(.caption)
+                            .foregroundStyle(Color.accentColor)
+                        Spacer()
+                        Text(preferences.text.string(.downloadUpdate))
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { hoveredUpdate = $0 }
+                .opacity(hoveredUpdate ? 1 : 0.85)
             }
             actionRow(preferences.text.string(.settings), shortcut: ",") {
                 router.show(.settings)

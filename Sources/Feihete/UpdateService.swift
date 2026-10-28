@@ -21,8 +21,8 @@ enum UpdateState: Equatable {
 final class UpdateService: ObservableObject {
     static let shared = UpdateService()
 
-    // Fill this with the GitHub Releases URL when the repository is published.
-    private let releasePageURL: URL? = nil
+    // GitHub Releases 更新源:仓库发布后自动生效。
+    private let releasePageURL: URL? = URL(string: "https://github.com/GYY-y/Feihete/releases/latest")
     @Published private(set) var state: UpdateState = .idle
 
     private init() {}
