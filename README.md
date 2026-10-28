@@ -2,7 +2,7 @@
 
 一款隐私优先的 macOS 菜单栏键盘统计应用。只统计次数,不记录内容;数据只存本机。
 
-**当前版本** 0.1.0 · **要求** macOS 13+ · Intel / Apple Silicon · **零第三方依赖**
+**当前版本** 0.1.1 · **要求** macOS 13+ · Intel / Apple Silicon · **零第三方依赖**
 
 > 项目曾用名 TapTally,现已更名为 Feihete。
 
@@ -22,20 +22,25 @@
 - **多语言** — 简体中文 / English / 繁體中文(香港) / 繁體中文(台灣)
 - **外观** — 跟随系统 / 浅色 / 深色
 
-## 快速开始
+## 安装
 
-从 [Releases](https://github.com/GYY-y/Feihete/releases) 下载,或自行构建:
+从 [Releases](https://github.com/GYY-y/Feihete/releases) 下载 `Feihete.dmg`,双击打开后:
+
+1. 把窗口里的 **Feihete.app 拖到旁边的 Applications 文件夹**(即拖进「应用程序」)
+2. 打开「应用程序」里的 Feihete —— 它是一个**菜单栏应用**,启动后不会出现在程序坞(Dock),
+   图标在屏幕右上角菜单栏里;点它即可展开今日数据
+3. 系统设置 → 隐私与安全性 → 辅助功能 中勾选 Feihete(首次启动会自动弹出引导)
+
+> 因为应用未使用 Apple 开发者证书公证,首次打开若提示「无法验证开发者」,
+> 请右键点图标选「打开」,或到 系统设置 → 隐私与安全性 点「仍要打开」。
+> 也可以用命令行清除隔离属性:`xattr -cr /Applications/Feihete.app`
+
+自行构建:
 
 ```bash
-./build.sh
+./build.sh          # 产物 build/Feihete.app 与 build/Feihete.dmg
 open build/Feihete.app
 ```
-
-首次使用需要授权:
-
-1. 启动后系统会自动弹出授权提示(若没弹出,点菜单栏图标里的「打开系统设置」)
-2. 系统设置 → 隐私与安全性 → 辅助功能 中勾选 Feihete
-3. 授权后一般 2 秒内自动开始统计;若数字不动,退出应用重新打开
 
 ## 隐私
 
@@ -64,8 +69,9 @@ open build/Feihete.app
 ## 构建
 
 - Swift + SwiftUI(Charts),菜单栏 MenuBarExtra,仅依赖系统框架
-- `./build.sh` 一键编译并打包 `build/Feihete.app`(ad-hoc 签名)+ DMG
+- `./build.sh` 一键编译并打包 `build/Feihete.app`(ad-hoc 签名)+ DMG;最后一步会自动校验安装包内是否包含 app、Applications 快捷方式和图标
 - `Package.swift` 保留供完整 Xcode 环境使用 `swift build`
+- 应用图标由 `Feihete.svg` 生成,修改 logo 后执行 `bash tools/make-icon.sh` 重新生成 `AppIcon.icns`
 - 注意:ad-hoc 签名应用每次重编译后,「辅助功能」授权可能需重新勾选
 
 ## 项目结构
@@ -85,6 +91,10 @@ Sources/
 │   ├── AXCharCounter.swift # 焦点元素字符数差值(中文字数)
 │   └── …(仪表盘/设置/关于/菜单栏弹窗/偏好/更新检查)
 └── taptool/            # xlsx 导出自测 CLI
+
+tools/
+├── make-icon.swift     # 从 SVG 渲染 macOS 应用图标
+└── make-icon.sh        # 生成 AppIcon.icns
 ```
 
 详细文档见 [说明文档.md](说明文档.md) 与 [需求文档.md](需求文档.md)。

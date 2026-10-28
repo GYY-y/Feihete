@@ -10,9 +10,11 @@ RES="$PWD/.toolchain/usr/lib/swift"
 mkdir -p build
 
 PRODUCT_NAME="Feihete"
+VERSION="0.1.1"
+BUILD_NUMBER="2"
 APP="build/${PRODUCT_NAME}.app"
 DMG="build/${PRODUCT_NAME}.dmg"
-TOTAL_STEPS=6
+TOTAL_STEPS=7
 DONE_STEPS=0
 
 run_step() {
@@ -99,8 +101,11 @@ assemble_app() {
     mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
     cp "build/${PRODUCT_NAME}" "$APP/Contents/MacOS/${PRODUCT_NAME}"
     cp Feihete.svg "$APP/Contents/Resources/Feihete.svg"
+    if [ -f AppIcon.icns ]; then
+        cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+    fi
 
-    cat > "$APP/Contents/Info.plist" <<'EOF'
+    cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -113,12 +118,14 @@ assemble_app() {
     <string>Feihete</string>
     <key>CFBundleDisplayName</key>
     <string>Feihete</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>${VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>${BUILD_NUMBER}</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
@@ -137,19 +144,66 @@ sign_app() {
 }
 
 package_artifacts() {
-    if hdiutil create \
-            -volname "$PRODUCT_NAME" \
-            -srcfolder "$APP" \
-            -ov \
-            -format UDZO \
-            "$DMG" >/dev/null; then
+    local stage="build/dmg-stage"
+    local rw="build/${PRODUCT_NAME}-rw.dmg"
+    local mnt="build/.dmg-mount"
+    local zip="build/${PRODUCT_NAME}.zip"
+
+    rm -rf "$stage" "$rw" "$mnt" "$DMG" "$zip"
+    mkdir -p "$stage"
+    cp -R "$APP" "$stage/"
+    # 关键：放一个指向 /Applications 的快捷方式，用户拖进去就完成安装
+    ln -s /Applications "$stage/Applications"
+    if [ -f AppIcon.icns ]; then
+        cp AppIcon.icns "$stage/.VolumeIcon.icns"
+    fi
+
+    if hdiutil create -volname "$PRODUCT_NAME" -srcfolder "$stage" -ov -format UDRW -fs HFS+ "$rw" >/dev/null 2>&1; then
+        mkdir -p "$mnt"
+        if hdiutil attach "$rw" -nobrowse -readwrite -noautoopen -mountpoint "$mnt" >/dev/null 2>&1; then
+            # 给卷设置自定义图标
+            SetFile -a C "$mnt" 2>/dev/null || true
+            hdiutil detach "$mnt" -quiet >/dev/null 2>&1 || hdiutil detach "$mnt" -force >/dev/null 2>&1 || true
+            hdiutil convert "$rw" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null 2>&1 && rm -f "$rw"
+        fi
+    fi
+
+    if [ -f "$DMG" ]; then
         echo "Built $DMG"
     else
-        rm -f "$DMG"
-        ZIP="build/${PRODUCT_NAME}.zip"
-        ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
-        echo "DMG creation unavailable; built $ZIP instead"
+        rm -f "$rw"
+        ditto -c -k --sequesterRsrc --keepParent "$APP" "$zip"
+        echo "DMG 创建不可用，已生成 $zip"
     fi
+}
+
+verify_package() {
+    local mnt="build/.verify-mount"
+    rm -rf "$mnt"
+    mkdir -p "$mnt"
+    if ! hdiutil attach "$DMG" -nobrowse -readonly -noautoopen -mountpoint "$mnt" >/dev/null 2>&1; then
+        echo "✗ 无法挂载 $DMG"
+        return 1
+    fi
+
+    local bad=0
+    [ -d "$mnt/${PRODUCT_NAME}.app" ] || { echo "✗ 缺少 ${PRODUCT_NAME}.app"; bad=1; }
+    [ -L "$mnt/Applications" ] || { echo "✗ 缺少 Applications 快捷方式（用户无法拖拽安装）"; bad=1; }
+    [ -f "$mnt/${PRODUCT_NAME}.app/Contents/Resources/AppIcon.icns" ] || { echo "✗ 缺少应用图标"; bad=1; }
+    if ! /usr/bin/plutil -lint "$mnt/${PRODUCT_NAME}.app/Contents/Info.plist" >/dev/null 2>&1; then
+        echo "✗ Info.plist 不是合法 plist"
+        bad=1
+    fi
+    /usr/bin/plutil -p "$mnt/${PRODUCT_NAME}.app/Contents/Info.plist" 2>/dev/null | grep -q "CFBundleIconFile" \
+        || { echo "✗ Info.plist 未声明 CFBundleIconFile"; bad=1; }
+
+    hdiutil detach "$mnt" -quiet >/dev/null 2>&1 || hdiutil detach "$mnt" -force >/dev/null 2>&1 || true
+    rm -rf "$mnt"
+
+    if [ "$bad" -eq 0 ]; then
+        echo "校验通过：app + Applications 快捷方式 + 图标齐全，版本 ${VERSION}"
+    fi
+    return "$bad"
 }
 
 run_step "准备 Swift 工具链" prepare_toolchain
@@ -158,5 +212,6 @@ run_step "编译 taptool 命令行工具" build_cli
 run_step "组装应用包" assemble_app
 run_step "签名应用包" sign_app
 run_step "生成 DMG 安装包" package_artifacts
+run_step "校验安装包" verify_package
 
-echo "构建完成：$APP"
+echo "构建完成：${APP}，版本 ${VERSION}"
