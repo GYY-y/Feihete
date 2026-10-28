@@ -65,7 +65,7 @@ final class UpdateService: ObservableObject {
     }
 
     private static var currentVersion: String {
-        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "0.1.0"
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "0.0.0"
     }
 
     private static func isNewer(_ remote: String, than local: String) -> Bool {

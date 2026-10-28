@@ -89,6 +89,11 @@ struct AppText {
 
     let language: AppLanguage
 
+    /// 版本号来自 Info.plist，由 build.sh 统一注入，避免硬编码走样
+    static let appVersion: String = {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }()
+
     func string(_ key: Key) -> String {
         switch language {
         case .simplifiedChinese:
@@ -143,7 +148,7 @@ struct AppText {
         case .light: return "浅色"
         case .dark: return "深色"
         case .aboutDescription: return "轻量、纯本地、隐私优先的键盘统计工具。"
-        case .version: return "版本 0.1.0"
+        case .version: return "版本 \(Self.appVersion)"
         case .builtForMac: return "为 macOS 打造"
         case .permissionBadgeGranted: return "● 已获键盘监听权限"
         case .permissionBadgeMissing: return "● 未获权限"
@@ -202,7 +207,7 @@ struct AppText {
         case .light: return "Light"
         case .dark: return "Dark"
         case .aboutDescription: return "A lightweight, local-first, privacy-focused keyboard statistics tool."
-        case .version: return "Version 0.1.0"
+        case .version: return "Version \(Self.appVersion)"
         case .builtForMac: return "Made for macOS"
         case .permissionBadgeGranted: return "● Keyboard monitoring enabled"
         case .permissionBadgeMissing: return "● Permission missing"
@@ -264,7 +269,7 @@ struct AppText {
         case .light: return "淺色"
         case .dark: return "深色"
         case .aboutDescription: return "輕量、純本機、重視私隱的鍵盤統計工具。"
-        case .version: return "版本 0.1.0"
+        case .version: return "版本 \(Self.appVersion)"
         case .builtForMac: return "為 macOS 打造"
         case .permissionBadgeGranted: return "● 已取得鍵盤監察權限"
         case .permissionBadgeMissing: return "● 未取得權限"
