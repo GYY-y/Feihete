@@ -2,6 +2,20 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+extension View {
+    /// Native macOS controls draw a focus ring in addition to their selected
+    /// state. Keep keyboard interaction on newer systems while removing that
+    /// extra outline from this app's compact controls.
+    @ViewBuilder
+    func withoutFocusRing() -> some View {
+        if #available(macOS 14.0, *) {
+            focusEffectDisabled()
+        } else {
+            focusable(false)
+        }
+    }
+}
+
 struct MainWindowView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @EnvironmentObject private var router: WindowRouter
@@ -16,6 +30,12 @@ struct MainWindowView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 360)
+            // The window assigns keyboard focus to the first native control on
+            // launch. A focus ring around the section switcher then looks like
+            // a second selected state, especially when the window is opened
+            // on Settings from the menu bar. Sections are navigation, so they
+            // should only show their selection highlight.
+            .withoutFocusRing()
             .padding(.vertical, 14)
 
             Divider()
@@ -70,6 +90,7 @@ struct SettingsView: View {
                         }
                         .labelsHidden()
                         .frame(width: 190)
+                        .withoutFocusRing()
                     }
                     Divider().padding(.leading, 54)
                     SettingRow(symbol: "circle.lefthalf.filled", color: .indigo, title: preferences.text.string(.appearance)) {
@@ -80,6 +101,7 @@ struct SettingsView: View {
                         }
                         .labelsHidden()
                         .frame(width: 190)
+                        .withoutFocusRing()
                     }
                     Divider().padding(.leading, 54)
                     SettingRow(symbol: "power", color: .green, title: preferences.text.string(.launchAtLogin)) {
@@ -113,6 +135,7 @@ struct SettingsView: View {
                         }
                         .labelsHidden()
                         .frame(width: 150)
+                        .withoutFocusRing()
                     }
                     Divider().padding(.leading, 54)
                     SettingRow(symbol: "tablecells", color: .orange, title: preferences.text.string(.exportExcel)) {

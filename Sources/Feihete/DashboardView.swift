@@ -26,6 +26,7 @@ struct DashboardView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 300)
+                .withoutFocusRing()
                 if !engine.granted {
                     PermissionCard()
                 }
