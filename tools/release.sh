@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Publish the current worktree as a versioned GitHub release.
-# Usage: ./tools/release.sh [version] [branch]
+# Usage: ./tools/release.sh --approved [version] [branch]
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT_DIR"
@@ -12,8 +12,24 @@ BUILD_FILE="build.sh"
 PRODUCT_NAME="Feihete"
 ASSET="build/${PRODUCT_NAME}.dmg"
 
-if [[ $# -gt 2 ]]; then
-    echo "用法: $0 [版本号] [分支名]" >&2
+approved=false
+args=()
+for arg in "$@"; do
+    if [[ "$arg" == "--approved" ]]; then
+        approved=true
+    else
+        args+=("$arg")
+    fi
+done
+
+if [[ "$approved" != true ]]; then
+    echo "发布前必须先完成验收，并使用 --approved 明确确认。" >&2
+    echo "用法: $0 --approved [版本号] [分支名]" >&2
+    exit 2
+fi
+
+if [[ ${#args[@]} -gt 2 ]]; then
+    echo "用法: $0 --approved [版本号] [分支名]" >&2
     exit 2
 fi
 
@@ -23,8 +39,8 @@ if [[ -z "$current_version" ]]; then
     exit 1
 fi
 
-if [[ -n "${1:-}" ]]; then
-    version="$1"
+if [[ -n "${args[0]:-}" ]]; then
+    version="${args[0]}"
 else
     version=$(CURRENT_VERSION="$current_version" python3 - <<'PY'
 import os
@@ -40,7 +56,7 @@ if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 tag="v${version}"
-branch="${2:-release/${tag}}"
+branch="${args[1]:-release/${tag}}"
 
 if git show-ref --verify --quiet "refs/tags/${tag}" || \
    git ls-remote --exit-code --tags "$REMOTE" "refs/tags/${tag}" >/dev/null 2>&1; then
