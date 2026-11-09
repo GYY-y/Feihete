@@ -2,20 +2,6 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-extension View {
-    /// Native macOS controls draw a focus ring in addition to their selected
-    /// state. Keep keyboard interaction on newer systems while removing that
-    /// extra outline from this app's compact controls.
-    @ViewBuilder
-    func withoutFocusRing() -> some View {
-        if #available(macOS 14.0, *) {
-            focusEffectDisabled()
-        } else {
-            focusable(false)
-        }
-    }
-}
-
 struct MainWindowView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @EnvironmentObject private var router: WindowRouter
@@ -37,7 +23,6 @@ struct MainWindowView: View {
             // should only show their selection highlight.
             .withoutFocusRing()
             .padding(.vertical, 14)
-
             Divider()
 
             Group {
@@ -52,6 +37,10 @@ struct MainWindowView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // The window focuses its first control on open; clearing that keeps the
+        // section switcher from looking "selected" twice (selection highlight
+        // plus focus ring) when the window is opened on Settings.
+        .clearsInitialFocus()
         .preferredColorScheme(preferences.appearance.colorScheme)
         .onReceive(router.$requestedSection.compactMap { $0 }) { requested in
             section = requested

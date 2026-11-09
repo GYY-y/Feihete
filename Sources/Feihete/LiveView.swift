@@ -38,6 +38,7 @@ struct LiveView: View {
                 .buttonStyle(.plain)
                 .onHover { hoveredUpdate = $0 }
                 .opacity(hoveredUpdate ? 1 : 0.85)
+                .withoutFocusRing()
             }
             actionRow(preferences.text.string(.settings), shortcut: ",") {
                 router.show(.settings)
@@ -50,6 +51,9 @@ struct LiveView: View {
         }
         .padding(14)
         .frame(width: 280)
+        // The panel also focuses its first button on open; clear it so the row
+        // does not come up with a focus ring.
+        .clearsInitialFocus()
     }
 
     @ViewBuilder
@@ -108,5 +112,10 @@ struct LiveView: View {
             hoveredAction = isHovered ? title : nil
         }
         .keyboardShortcut(shortcut == "," ? "," : "q", modifiers: [.command])
+        // The menu bar window hands keyboard focus to the first button when it
+        // opens, which drew a blue focus ring around "Settings" and read like a
+        // selection that the user never made. These rows are actions, not
+        // navigation, so they keep only their hover state.
+        .withoutFocusRing()
     }
 }
