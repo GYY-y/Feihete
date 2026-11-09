@@ -67,14 +67,18 @@ prepare_toolchain() {
         rm -rf "$SDK/usr/include/swift"
     fi
 
-    if [ ! -d "$RES/clang" ] || [ ! -f "$PWD/.toolchain/usr/include/swift/bridging.modulemap" ]; then
+    # CommandLineTools 的 clang 版本目录名会随版本变化（15、16、17…），
+    # 写死版本号会导致编译器找不到 stdarg.h 等内建头文件，所有 C 模块构建
+    # 失败后反复重试，编译既慢又最后报错。
+    CLANGDIR=$(readlink -f /Library/Developer/CommandLineTools/usr/lib/swift/clang)
+    CLANGVERSION=$(basename "$CLANGDIR")
+    if [ ! -f "$RES/clang/$CLANGVERSION/include/stdarg.h" ] || [ ! -f "$PWD/.toolchain/usr/include/swift/bridging.modulemap" ]; then
         echo "bootstrap: creating clean toolchain resource copy"
         T="$PWD/.toolchain"
         rm -rf "$T"
         mkdir -p "$T/usr/lib/swift" "$T/usr/include/swift" "$T/usr/lib/clang"
         (cd /Library/Developer/CommandLineTools/usr/lib/swift && tar cf - .) | (cd "$T/usr/lib/swift" && tar xf -)
-        CLANGDIR=$(readlink -f /Library/Developer/CommandLineTools/usr/lib/swift/clang)
-        ln -sfn "$CLANGDIR" "$T/usr/lib/clang/16"
+        ln -sfn "$CLANGDIR" "$T/usr/lib/clang/$CLANGVERSION"
         ln -sf /Library/Developer/CommandLineTools/usr/include/swift/bridging "$T/usr/include/swift/bridging"
         ln -sf /Library/Developer/CommandLineTools/usr/include/swift/bridging.modulemap "$T/usr/include/swift/bridging.modulemap"
     fi
@@ -194,8 +198,11 @@ verify_package() {
         echo "✗ Info.plist 不是合法 plist"
         bad=1
     fi
-    /usr/bin/plutil -p "$mnt/${PRODUCT_NAME}.app/Contents/Info.plist" 2>/dev/null | grep -q "CFBundleIconFile" \
-        || { echo "✗ Info.plist 未声明 CFBundleIconFile"; bad=1; }
+    # 用 plutil -extract 而不是 `plutil -p | grep -q`：pipefail 下 grep -q
+    # 提前退出会让 plutil 收到 SIGPIPE 返回非零，导致校验随机失败。
+    ICON_KEY=$(/usr/bin/plutil -extract CFBundleIconFile raw -o - \
+        "$mnt/${PRODUCT_NAME}.app/Contents/Info.plist" 2>/dev/null || true)
+    [ -n "$ICON_KEY" ] || { echo "✗ Info.plist 未声明 CFBundleIconFile"; bad=1; }
 
     hdiutil detach "$mnt" -quiet >/dev/null 2>&1 || hdiutil detach "$mnt" -force >/dev/null 2>&1 || true
     rm -rf "$mnt"
