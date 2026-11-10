@@ -72,7 +72,9 @@ prepare_toolchain() {
     # 失败后反复重试，编译既慢又最后报错。
     CLANGDIR=$(readlink -f /Library/Developer/CommandLineTools/usr/lib/swift/clang)
     CLANGVERSION=$(basename "$CLANGDIR")
-    if [ ! -f "$RES/clang/$CLANGVERSION/include/stdarg.h" ] || [ ! -f "$PWD/.toolchain/usr/include/swift/bridging.modulemap" ]; then
+    # 注意：CLT 的 swift/clang 已经是指向版本目录的链接（../clang/17），
+    # 所以内建头文件的真实路径是 $RES/clang/include/，不要再多拼一层版本号。
+    if [ ! -f "$RES/clang/include/stdarg.h" ] || [ ! -f "$PWD/.toolchain/usr/include/swift/bridging.modulemap" ]; then
         echo "bootstrap: creating clean toolchain resource copy"
         T="$PWD/.toolchain"
         rm -rf "$T"

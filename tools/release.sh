@@ -105,9 +105,12 @@ cache_dir=$(mktemp -d "${TMPDIR:-/tmp}/feihete-module-cache.XXXXXX")
 cleanup_files=()
 cleanup() {
     rm -rf "$cache_dir"
-    for path in "${cleanup_files[@]}"; do
-        rm -f "$path"
-    done
+    # macOS 自带 bash 3.2 在 set -u 下展开空数组会报 unbound variable
+    if [[ ${#cleanup_files[@]} -gt 0 ]]; then
+        for path in "${cleanup_files[@]}"; do
+            rm -f "$path"
+        done
+    fi
 }
 trap cleanup EXIT
 
