@@ -155,15 +155,12 @@ cleanup_files+=("$notes_file")
 } > "$notes_file"
 
 remote_url=$(git remote get-url "$REMOTE")
-case "$remote_url" in
-    git@github.com:*) repo_slug="${remote_url#git@github.com:}" ;;
-    https://github.com/*) repo_slug="${remote_url#https://github.com/}" ;;
-    *)
-        echo "无法从远端地址解析 GitHub 仓库: ${remote_url}" >&2
-        exit 1
-        ;;
-esac
-repo_slug="${repo_slug%.git}"
+# 兼容 GitHub 镜像远端（如 https://gitclone.com/github.com/owner/repo.git）
+repo_slug=$(printf '%s' "$remote_url" | sed -E 's#^(git@github\.com:|https?://github\.com/|https?://[^/]+/github\.com/)##; s#\.git$##')
+if [[ ! "$repo_slug" =~ ^[^/]+/[^/]+$ ]]; then
+    echo "无法从远端地址解析 GitHub 仓库: ${remote_url}" >&2
+    exit 1
+fi
 
 release_url=""
 if command -v gh >/dev/null 2>&1; then
