@@ -2,7 +2,7 @@
 
 一款隐私优先的 macOS 菜单栏键盘统计应用。只统计次数,不记录内容;数据只存本机。
 
-**当前版本** 0.1.2 · **要求** macOS 13+ · Intel / Apple Silicon · **零第三方依赖**
+**当前版本** 0.1.3 · **要求** macOS 13+ · Intel / Apple Silicon · **零第三方依赖**
 
 > 项目曾用名 TapTally,现已更名为 Feihete。
 

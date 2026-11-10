@@ -10,7 +10,7 @@ RES="$PWD/.toolchain/usr/lib/swift"
 mkdir -p build
 
 PRODUCT_NAME="Feihete"
-VERSION="0.1.2"
+VERSION="0.1.3"
 BUILD_NUMBER="3"
 APP="build/${PRODUCT_NAME}.app"
 DMG="build/${PRODUCT_NAME}.dmg"
